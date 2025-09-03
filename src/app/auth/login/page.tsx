@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Role, Status } from "@/lib/enums";
+import { Role, Status } from "@/types/enums";
 
 export default function LoginPage() {
   const router = useRouter();

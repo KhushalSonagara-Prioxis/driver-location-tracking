@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { Role, Status } from "./enums";
+import { Role, Status } from "../types/enums";
 
 export interface AuthUser {
   id: string;

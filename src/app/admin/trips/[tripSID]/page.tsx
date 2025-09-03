@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import GoogleMap from "@/components/GoogleMap";
+import GoogleMap from "@/cmp/GoogleMap";
 
 
 interface Trip {

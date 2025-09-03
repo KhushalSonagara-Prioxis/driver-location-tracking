@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { getAuthUser } from "@/lib/auth";
-import { Role, Status } from "@/lib/enums";
+import { getAuthUser } from "@/auth/auth";
+import { Role, Status } from "@/types/enums";
 
 export default async function HomePage() {
   const user = await getAuthUser();
