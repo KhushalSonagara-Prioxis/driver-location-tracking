@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import GoogleMap from "@/components/GoogleMap";
+import { getLocationName } from "@/services/geocodingService";
 
 interface Trip {
   tripSID: string;
@@ -21,6 +23,7 @@ export default function AdminTripDetailPage() {
 
   const [trip, setTrip] = useState<Trip | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentLocationName,setCurrectLocationName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tripSID) {
@@ -32,27 +35,24 @@ export default function AdminTripDetailPage() {
 
     const fetchTrip = async () => {
       try {
-        if (typeof window === "undefined") return;
-
         const res = await fetch(
           `http://localhost:5125/api/Driver/GetCurrentLocation/${tripSID}`
         );
 
         if (!res.ok) throw new Error(`Trip not found: ${res.status}`);
-
+        
         const data: Trip = await res.json();
-        console.log("Fetched data:", data);
         setTrip(data);
+        console.log(data)
         setError(null);
       } catch (err: any) {
-        console.error("Failed to fetch trip location", err);
         setError(err.message || "Failed to fetch trip");
         setTrip(null);
       }
     };
 
     fetchTrip();
-    interval = setInterval(fetchTrip, 10000);
+    interval = setInterval(fetchTrip, 10000); // refresh every 10s
 
     return () => clearInterval(interval);
   }, [tripSID]);
@@ -61,18 +61,28 @@ export default function AdminTripDetailPage() {
   if (!trip) return <p>Loading trip...</p>;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       <h1 className="text-2xl font-bold">Trip Detail: {trip.tripSID}</h1>
 
       <p>
-        Start: {trip.startLocationName} ({trip.startLatitude}, {trip.startLongitude})
+        <b>Start:</b> {trip.startLocationName} ({trip.startLatitude},{" "}
+        {trip.startLongitude})
       </p>
       <p>
-        Destination: {trip.toLocationName} ({trip.toLatitude}, {trip.toLongitude})
+        <b>Destination:</b> {trip.toLocationName} ({trip.toLatitude},{" "}
+        {trip.toLongitude})
       </p>
-      <p>
-        Driver Location: ({trip.driverLatitude}, {trip.driverLongitude})
-      </p>
+      <GoogleMap
+        lat={trip.driverLatitude}
+        lng={trip.driverLongitude}
+        zoom={15}
+      />
+
+      <script
+        async
+        defer
+        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`}
+      ></script>
     </div>
   );
 }
