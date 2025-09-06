@@ -1,12 +1,9 @@
 "use client";
 
+import { GoogleMapProps } from "@/types/locationTypes";
 import { useEffect, useRef } from "react";
 
-interface GoogleMapProps {
-  lat: number;
-  lng: number;
-  zoom?: number;
-}
+
 
 export default function GoogleMap({ lat, lng, zoom = 14 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);

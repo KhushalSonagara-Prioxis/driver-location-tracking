@@ -7,7 +7,15 @@ export default function LoginPage() {
   const router = useRouter();
 
   const loginAs = (role: Role) => {
-    document.cookie = `userId=123; path=/`;
+    let userSID = "";
+
+    if (role === Role.Admin) {
+      userSID = "USR-C36FE804-CE27-43D5-A5FB-C91F08B36EFA"; 
+    } else if (role === Role.Driver) {
+      userSID = "USR-0CC69F93-0FC3-47D6-943E-270E0FB21E30"; 
+    }
+
+    document.cookie = `userSID=${userSID}; path=/`;
     document.cookie = `role=${role}; path=/`;
     document.cookie = `status=${Status.Active}; path=/`;
 
