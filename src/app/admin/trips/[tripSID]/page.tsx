@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import GoogleMap from "@/cmp/GoogleMap";
-import {
-  getTripBySID,
-  getTripUpdates,
-  getTripCurrentLocation,
-} from "@/api/tripServices";
+import {useTripService} from "@/api/tripServices";
 import { Trip, TripUpdate } from "@/types/tripTypes";
 import { TripStatus, TripUpdateStatus } from "@/types/enums";
 
@@ -19,6 +15,11 @@ export default function AdminTripDetailPage() {
   const [updates, setUpdates] = useState<TripUpdate[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const mapRef = useRef<any>(null);
+  const currentLocationRef = useRef<{ lat: number; lng: number }>({ lat: 0, lng: 0 });
+
+  const tripService = useTripService();
+
   useEffect(() => {
     if (!tripSID) {
       setError("Trip ID not found");
@@ -29,7 +30,7 @@ export default function AdminTripDetailPage() {
 
     const fetchTrip = async () => {
       try {
-        const data = await getTripBySID(tripSID);
+        const data = await tripService.getTripBySID(tripSID);
 
         if (!data) {
           setError("Trip not found");
@@ -41,17 +42,23 @@ export default function AdminTripDetailPage() {
         setError(null);
 
         if (data.tripStatus === TripStatus.InProgress) {
-          const locationData = await getTripCurrentLocation(tripSID);
-          setTrip((prev) =>
-            prev ? { ...prev, ...locationData } : { ...data, ...locationData }
-          );
+          const locationData = await tripService.getTripCurrentLocation(tripSID);
+
+          const lat = Number(locationData.driverLatitude || 0);
+          const lng = Number(locationData.driverLongitude || 0);
+
+          currentLocationRef.current = { lat, lng };
+
+          if (mapRef.current) {
+            mapRef.current.updatePosition(lat, lng);
+          }
         }
 
         if (
           data.tripStatus === TripStatus.InProgress ||
           data.tripStatus === TripStatus.Completed
         ) {
-          const tripUpdates = await getTripUpdates(tripSID);
+          const tripUpdates = await tripService.getTripUpdates(tripSID);
           setUpdates(tripUpdates);
         } else {
           setUpdates([]);
@@ -63,12 +70,10 @@ export default function AdminTripDetailPage() {
     };
 
     fetchTrip();
-    if (trip?.tripStatus === TripStatus.InProgress) {
-      interval = setInterval(fetchTrip, 5000);
-    }
+    interval = setInterval(fetchTrip, 5000);
 
     return () => clearInterval(interval);
-  }, [tripSID, trip?.tripStatus]);
+  }, [tripSID]);
 
   if (error) return <p className="text-red-500">{error}</p>;
   if (!trip) return <p>Loading trip...</p>;
@@ -77,32 +82,23 @@ export default function AdminTripDetailPage() {
     <div className="space-y-6 p-4 bg-white dark:bg-black min-h-screen text-gray-900 dark:text-gray-100">
       <h1 className="text-2xl font-bold">Trip Detail: {trip.tripSID}</h1>
 
-      {(trip.tripStatus === TripStatus.InProgress ||
-        trip.tripStatus === TripStatus.Completed) &&
-        trip.driverLatitude &&
-        trip.driverLongitude &&
-        !isNaN(Number(trip.driverLatitude)) &&
-        !isNaN(Number(trip.driverLongitude)) && (
-          <div className="w-full h-[400px] rounded-lg overflow-hidden shadow">
-            <GoogleMap
-              lat={Number(trip.driverLatitude)}
-              lng={Number(trip.driverLongitude)}
-              zoom={15}
-            />
-          </div>
-        )}
-
+      <div className="w-full h-[400px] rounded-lg overflow-hidden shadow">
+        <GoogleMap
+          ref={mapRef}
+          lat={currentLocationRef.current.lat}
+          lng={currentLocationRef.current.lng}
+          zoom={15}
+        />
+      </div>
 
       <div className="space-y-2">
         <p>
           <b>Start:</b> {trip.startLocationName ?? "N/A"} (
-          {trip.startLatitude ?? "N/A"},{" "}
-          {trip.startLongitude ?? "N/A"})
+          {trip.startLatitude ?? "N/A"}, {trip.startLongitude ?? "N/A"})
         </p>
         <p>
           <b>Destination:</b> {trip.toLocationName ?? "N/A"} (
-          {trip.toLatitude ?? "N/A"},{" "}
-          {trip.toLongitude ?? "N/A"})
+          {trip.toLatitude ?? "N/A"}, {trip.toLongitude ?? "N/A"})
         </p>
         <p>
           <b>Status:</b> {trip.tripStatusName}
@@ -110,7 +106,6 @@ export default function AdminTripDetailPage() {
         <p>
           <b>Driver:</b> {trip.driverName ?? "N/A"}
         </p>
-
         <p>
           <b>Last Modified:</b>{" "}
           {trip.lastModifiedDate
@@ -118,6 +113,7 @@ export default function AdminTripDetailPage() {
             : "N/A"}
         </p>
       </div>
+
       <div>
         <h2 className="text-lg font-semibold mt-4">Trip History</h2>
         <ul className="space-y-2">
@@ -146,11 +142,12 @@ export default function AdminTripDetailPage() {
           )}
         </ul>
       </div>
+
       <script
         async
         defer
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`}
-      ></script>
+      />
     </div>
   );
 }

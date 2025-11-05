@@ -18,7 +18,7 @@ export interface Trip {
 }
 
 
-export interface TripUpdate  {
+export interface TripUpdate {
   tripUpdatesSID: string;
   driverName: string;
   tripUpdatesStatus: TripUpdateStatus;
@@ -36,5 +36,5 @@ export interface AddTripRequest {
   startLocationSID: string;
   toLocationSID: string;
   driverSID: string;
-  userSID: string;
+  // userSID: string;
 }

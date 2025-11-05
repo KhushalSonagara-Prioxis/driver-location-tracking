@@ -1,43 +1,78 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Role, Status } from "@/types/enums";
+import { Role } from "@/types/enums";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  const loginAs = (role: Role) => {
-    let userSID = "";
+  const handleLogin = async () => {
+    try {
+      setError("");
+      const response = await fetch("http://localhost:5125/Login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (role === Role.Admin) {
-      userSID = "USR-C36FE804-CE27-43D5-A5FB-C91F08B36EFA"; 
-    } else if (role === Role.Driver) {
-      userSID = "USR-0CC69F93-0FC3-47D6-943E-270E0FB21E30"; 
+      if (!response.ok) {
+        throw new Error("Invalid email or password");
+      }
+
+      console.log("response",response)
+      const data = await response.json();
+
+      console.log("data",data)
+
+      // Store auth info
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role);
+
+      // Redirect based on role
+      if (data.role === Role.Admin) {
+        router.push("/admin/trips");
+      } else if (data.role === Role.Driver) {
+        router.push("/driver/trips");
+      } else {
+        router.push("/");
+      }
+    } catch (err: any) {
+      setError(err.message || "Login failed");
     }
-
-    document.cookie = `userSID=${userSID}; path=/`;
-    document.cookie = `role=${role}; path=/`;
-    document.cookie = `status=${Status.Active}; path=/`;
-
-    if (role === Role.Admin) router.push("/admin/dashboard");
-    if (role === Role.Driver) router.push("/driver/trips");
   };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen space-y-4">
-      <h1 className="text-2xl font-bold">Login</h1>
+      <h1 className="text-3xl font-bold">Login</h1>
+
+      <input
+        type="email"
+        placeholder="Email"
+        className="px-4 py-2 border rounded w-64"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        className="px-4 py-2 border rounded w-64"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
       <button
-        onClick={() => loginAs(Role.Admin)}
-        className="px-4 py-2 bg-blue-500 text-white rounded"
+        onClick={handleLogin}
+        className="px-4 py-2 bg-blue-600 text-white rounded w-64 hover:bg-blue-700"
       >
-        Login as Admin
+        Login
       </button>
-      <button
-        onClick={() => loginAs(Role.Driver)}
-        className="px-4 py-2 bg-green-500 text-white rounded"
-      >
-        Login as Driver
-      </button>
+
+      {error && <p className="text-red-500">{error}</p>}
     </div>
   );
 }

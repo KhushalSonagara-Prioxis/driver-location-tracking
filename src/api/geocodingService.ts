@@ -17,7 +17,7 @@ export async function getLocationName(lat: number, lng: number): Promise<string 
     }
 
     const data = await res.json();
-    console.log("data..........."+data)
+    console.log("data..........." + data)
     return data.display_name || null;
   } catch (error) {
     console.error("Error fetching location name:", error);

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
-import { addTrip } from "@/api/tripServices";
-import { getDrivers } from "@/api/userServices";
-import { getLocations } from "@/api/locationServices";
+import { useTripService } from "@/api/tripServices";
+import { useUserService } from "@/api/userServices";
+import { useLocationService } from "@/api/locationServices";
 import { AddTripRequest } from "@/types/tripTypes";
 import { DriverDropdown } from "@/types/userTypes";
 import { LocationDropdown } from "@/types/locationTypes";
@@ -23,19 +23,23 @@ export default function AddTripForm({ onSuccess, onClose }: AddTripFormProps) {
     startLocationSID: "",
     toLocationSID: "",
     driverSID: "",
-    userSID: "",
+    // userSID: "",
   });
 
   const [drivers, setDrivers] = useState<DriverDropdown[]>([]);
   const [locations, setLocations] = useState<LocationDropdown[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const tripService = useTripService();
+  const userService = useUserService();
+  const locationService = useLocationService();
+
   useEffect(() => {
     const fetchDropdowns = async () => {
       try {
         const [driverData, locationData] = await Promise.all([
-          getDrivers(),
-          getLocations(),
+          userService.getDrivers(),
+          locationService.getLocations(),
         ]);
         setDrivers(driverData);
         setLocations(locationData);
@@ -76,7 +80,7 @@ export default function AddTripForm({ onSuccess, onClose }: AddTripFormProps) {
     e.preventDefault();
     try {
       setLoading(true);
-      await addTrip(formData);
+      await tripService.addTrip(formData);
       resetForm();
       onSuccess();
       onClose();

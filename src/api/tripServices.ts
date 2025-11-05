@@ -1,29 +1,29 @@
+"use client";
+
 import { Trip, TripUpdate, AddTripRequest } from "@/types/tripTypes";
 import { Location } from "@/types/locationTypes";
 import { TripStatus, TripUpdateStatus } from "@/types/enums";
+import { useFetchWithAuth } from "../auth/fetchWithAuth";
 
-// const BaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 const BaseUrl: string = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:5125/api/";
 const TripUrl = `${BaseUrl.replace(/\/$/, "")}/Trip`;
 
+export function useTripService() {
+  const fetchWithAuth = useFetchWithAuth();
 
-export const getTripCurrentLocation = async (tripSID: string): Promise<Trip> => {
-  const res = await fetch(`${BaseUrl}Driver/GetCurrentLocation/${tripSID}`);
-  if (!res.ok) {
-    throw new Error(`Trip not found: ${res.status}`);
-  }
-  return res.json();
-};
+  // 🚗 1. Get Driver Current Location
+  const getTripCurrentLocation = async (tripSID: string): Promise<Trip> => {
+    const res = await fetchWithAuth(`${BaseUrl}Driver/GetCurrentLocation/${tripSID}`);
+    if (!res.ok) throw new Error(`Trip not found: ${res.status}`);
+    return res.json();
+  };
 
-export const updateDriverCurrentLocation = async (currentTripId: string, loc: Location) => {
-  try {
-    const res = await fetch(
+  // 📍 2. Update Driver’s Current Location
+  const updateDriverCurrentLocation = async (currentTripId: string, loc: Location) => {
+    const res = await fetchWithAuth(
       `${BaseUrl}Driver/UpdateDriverCurrentLocation/${currentTripId}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           latitude: loc.lat,
           longitude: loc.lng,
@@ -35,34 +35,27 @@ export const updateDriverCurrentLocation = async (currentTripId: string, loc: Lo
       const text = await res.text();
       console.error("Failed to update location:", res.status, text);
     }
-  } catch (err) {
-    console.error("Network error updating location:", err);
-  }
-};
+  };
 
-
-
-export const getTrips = async ({
-  searchText = "",
-  page = 1,
-  pageSize = 10,
-  sortColumn = "lastModifiedDate",
-  sortOrder = "DESC",
-  sid = "",
-  statusFilter = "",
-}: {
-  searchText?: string;
-  page?: number;
-  pageSize?: number;
-  sortColumn?: string;
-  sortOrder?: "ASC" | "DESC";
-  sid?: string;
-  statusFilter?: TripStatus | "";
-}): Promise<{ result: Trip[]; meta: any }> => {
-  try {
-    const url = new URL(
-      `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5125/api"}/Trip`
-    );
+  // 🧾 3. Get Trips (with filters, pagination, etc.)
+  const getDriverTrips = async ({
+    searchText = "",
+    page = 1,
+    pageSize = 10,
+    sortColumn = "lastModifiedDate",
+    sortOrder = "DESC",
+    sid = "",
+    statusFilter = "",
+  }: {
+    searchText?: string;
+    page?: number;
+    pageSize?: number;
+    sortColumn?: string;
+    sortOrder?: "ASC" | "DESC";
+    sid?: string;
+    statusFilter?: TripStatus | "";
+  }): Promise<{ result: Trip[]; meta: any }> => {
+    const url = new URL(`${BaseUrl.replace(/\/$/, "")}/Driver/GetAllTripsOfDriver`);
 
     url.searchParams.append("SearchText", searchText);
     url.searchParams.append("Page", page.toString());
@@ -71,108 +64,124 @@ export const getTrips = async ({
     url.searchParams.append("SortOrder", sortOrder);
 
     const filters: any[] = [];
-    if (statusFilter) {
-      filters.push({ key: "tripStatus", value: statusFilter, condition: "=" });
-    }
-    if (sid) {
-      filters.push({ key: "UserSID", value: sid, condition: "=" });
-    }
+    if (statusFilter) filters.push({ key: "tripStatus", value: statusFilter, condition: "=" });
+    if (sid) filters.push({ key: "UserSID", value: sid, condition: "=" });
 
     if (filters.length > 0) {
       url.searchParams.append("Filters", JSON.stringify(filters));
     }
 
-    console.log("Trip API URL:", url.toString());
-
-    const res = await fetch(url.toString());
+    const res = await fetchWithAuth(url.toString());
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`Failed to fetch trips: ${res.status} ${text}`);
     }
 
     return await res.json();
-  } catch (err: any) {
-    console.error("Error in getTrips:", err);
-    throw new Error(err.message || "Unexpected error fetching trips");
-  }
-};
+  };
 
+  const getTrips = async ({
+    searchText = "",
+    page = 1,
+    pageSize = 10,
+    sortColumn = "lastModifiedDate",
+    sortOrder = "DESC",
+    sid = "",
+    statusFilter = "",
+  }: {
+    searchText?: string;
+    page?: number;
+    pageSize?: number;
+    sortColumn?: string;
+    sortOrder?: "ASC" | "DESC";
+    sid?: string;
+    statusFilter?: TripStatus | "";
+  }): Promise<{ result: Trip[]; meta: any }> => {
+    const url = new URL(`${BaseUrl.replace(/\/$/, "")}/Trip`);
 
-export const getTripBySID = async (tripSID: string): Promise<Trip | null> => {
-  try {
-    console.log("Fetching trip with SID:", tripSID);
+    url.searchParams.append("SearchText", searchText);
+    url.searchParams.append("Page", page.toString());
+    url.searchParams.append("PageSize", pageSize.toString());
+    url.searchParams.append("SortColumn", sortColumn);
+    url.searchParams.append("SortOrder", sortOrder);
 
+    const filters: any[] = [];
+    if (statusFilter) filters.push({ key: "tripStatus", value: statusFilter, condition: "=" });
+    if (sid) filters.push({ key: "UserSID", value: sid, condition: "=" });
+
+    if (filters.length > 0) {
+      url.searchParams.append("Filters", JSON.stringify(filters));
+    }
+
+    const res = await fetchWithAuth(url.toString());
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Failed to fetch trips: ${res.status} ${text}`);
+    }
+
+    return await res.json();
+  };
+
+  // 🔍 4. Get Trip by SID
+  const getTripBySID = async (tripSID: string): Promise<Trip | null> => {
     const url = `${TripUrl}?Filters=${encodeURIComponent(
       JSON.stringify([{ key: "TripSID", value: tripSID, condition: "=" }])
     )}`;
 
-    console.log("URL called:", url);
-
-    const res = await fetch(url);
+    const res = await fetchWithAuth(url);
     if (!res.ok) throw new Error(`Failed to fetch trip: ${res.status}`);
 
     const data = await res.json();
-    console.log("Trip data:", data);
-
     return data?.result?.[0] ?? null;
-  } catch (err: any) {
-    console.error("getTripBySID error:", err);
-    throw new Error(err.message || "Unexpected error fetching trip");
-  }
-};
+  };
 
+  // 🔍 4. Get Trip by SID
+  const getDriverTripBySID = async (tripSID: string): Promise<Trip | null> => {
+    const url = `${BaseUrl}Driver/GetAllTripsOfDriver?Filters=${encodeURIComponent(
+      JSON.stringify([{ key: "TripSID", value: tripSID, condition: "=" }])
+    )}`;
 
-export const getTripUpdates = async (tripSID: string): Promise<TripUpdate[]> => {
-  try {
-    const url = `${TripUrl}/GetTripUpdateStatus/${tripSID}`;
-    console.log("getTripUpdates URL:", url);
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch trip updates: ${res.status}`);
+    const res = await fetchWithAuth(url);
+    if (!res.ok) throw new Error(`Failed to fetch trip: ${res.status}`);
 
     const data = await res.json();
+    return data?.result?.[0] ?? null;
+  };
+
+
+  // 🔁 5. Get Trip Updates
+  const getTripUpdates = async (tripSID: string): Promise<TripUpdate[]> => {
+    const url = `${TripUrl}/GetTripUpdateStatus/${tripSID}`;
+    const res = await fetchWithAuth(url);
+    if (!res.ok) throw new Error(`Failed to fetch trip updates: ${res.status}`);
+    const data = await res.json();
     return Array.isArray(data) ? data : [];
-  } catch (err: any) {
-    console.error("getTripUpdates error:", err);
-    throw new Error(err.message || "Unexpected error fetching trip updates");
-  }
-};
+  };
 
-
-
-export const startTrip = async (tripSID: string) => {
-  try {
-    const res = await fetch(`${TripUrl}/TripStart/${tripSID}`, { method: "POST" });
+  // ▶️ 6. Start Trip
+  const startTrip = async (tripSID: string) => {
+    const res = await fetchWithAuth(`${TripUrl}/TripStart/${tripSID}`, { method: "POST" });
     if (!res.ok) throw new Error(`Failed to start trip: ${res.status}`);
-    return await res.json();
-  } catch (err: any) {
-    console.error("startTrip error:", err);
-    throw new Error(err.message || "Unexpected error starting trip");
-  }
-};
+    return res.json();
+  };
 
-export const endTrip = async (tripSID: string) => {
-  try {
-    const res = await fetch(`${TripUrl}/TripEnd/${tripSID}`, { method: "POST" });
+  // ⏹️ 7. End Trip
+  const endTrip = async (tripSID: string) => {
+    const res = await fetchWithAuth(`${TripUrl}/TripEnd/${tripSID}`, { method: "POST" });
     if (!res.ok) throw new Error(`Failed to end trip: ${res.status}`);
-    return await res.json();
-  } catch (err: any) {
-    console.error("endTrip error:", err);
-    throw new Error(err.message || "Unexpected error ending trip");
-  }
-};
+    return res.json();
+  };
 
-export const addTripStatus = async (
-  tripSID: string,
-  status: TripUpdateStatus,
-  latitude: number,
-  longitude: number,
-  note: string
-) => {
-  try {
-    const res = await fetch(`${TripUrl}/AddTripStatus/${tripSID}`, {
+  // 📝 8. Add Trip Status
+  const addTripStatus = async (
+    tripSID: string,
+    status: TripUpdateStatus,
+    latitude: number,
+    longitude: number,
+    note: string
+  ) => {
+    const res = await fetchWithAuth(`${TripUrl}/AddTripStatus/${tripSID}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         tripUpdateStatus: status,
         tripUpdatedLatitude: latitude,
@@ -180,29 +189,35 @@ export const addTripStatus = async (
         note,
       }),
     });
+
     if (!res.ok) throw new Error(`Failed to update trip status: ${res.status}`);
-    return await res.json();
-  } catch (err: any) {
-    console.error("addTripStatus error:", err);
-    throw new Error(err.message || "Unexpected error updating trip status");
-  }
-};
+    return res.json();
+  };
 
-
-export const addTrip = async (trip: AddTripRequest): Promise<any> => {
-  try {
-    const res = await fetch(`${TripUrl}/AddTrip`, {
+  // ➕ 9. Add New Trip
+  const addTrip = async (trip: AddTripRequest): Promise<any> => {
+    const res = await fetchWithAuth(`${TripUrl}/AddTrip`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(trip),
     });
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`Failed to add trip: ${res.status} ${text}`);
     }
-    return await res.json();
-  } catch (err: any) {
-    console.error("addTrip error:", err);
-    throw new Error(err.message || "Unexpected error adding trip");
-  }
-};
+    return res.json();
+  };
+
+  return {
+    getTripCurrentLocation,
+    updateDriverCurrentLocation,
+    getTrips,
+    getDriverTrips,
+    getTripBySID,
+    getDriverTripBySID,
+    getTripUpdates,
+    startTrip,
+    endTrip,
+    addTripStatus,
+    addTrip,
+  };
+}

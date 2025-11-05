@@ -1,24 +1,16 @@
-import { cookies } from "next/headers";
-import { Role, Status } from "../types/enums";
+import { Role } from "../types/enums";
+import { AuthUser } from "@/types/userTypes";
 
-export interface AuthUser {
-  id: string;
-  role: Role;
-  status: Status;
-}
+export function getAuthUser(): AuthUser | null {
+  if (typeof window === "undefined") return null;
 
-export async function getAuthUser(): Promise<AuthUser | null> {
-  const cookieStore = await cookies();
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
 
-  const id = cookieStore.get("userId")?.value;
-  const role = cookieStore.get("role")?.value;
-  const status = cookieStore.get("status")?.value;
-
-  if (!id || !role || !status) return null;
+  if (!token || !role) return null;
 
   return {
-    id,
+    token,
     role: Number(role) as Role,
-    status: Number(status) as Status,
   };
 }

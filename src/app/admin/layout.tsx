@@ -1,16 +1,13 @@
 import { ReactNode } from "react";
-import { DriverLocationProvider } from "@/context/DriverLocationContext";
 import ProtectedRoute from "@/cmp/ProtectedRoute";
 import { Role } from "@/types/enums";
 
 export default function DriverLayout({ children }: { children: ReactNode }) {
   return (
-    <ProtectedRoute allowedRoles={[Role.Driver]}>
-    <DriverLocationProvider>
+    <ProtectedRoute allowedRoles={[Role.Admin]}>
       <div className="flex min-h-screen">
         <main className="flex-1 p-4">{children}</main>
       </div>
-    </DriverLocationProvider>
     </ProtectedRoute>
   );
 }

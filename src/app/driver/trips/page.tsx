@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getTrips } from "@/api/tripServices";
+import { useTripService } from "@/api/tripServices";
 import { Trip } from "@/types/tripTypes";
 import Link from "next/link";
 import { TripStatus } from "@/types/enums";
-import Cookies from "js-cookie"; 
+import Cookies from "js-cookie";
 
 export default function DriverTripListPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -20,25 +20,27 @@ export default function DriverTripListPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const userSID = Cookies.get("userSID");
+  const tripService = useTripService();
+
 
   useEffect(() => {
-    console.log(userSID)
-    if (!userSID) {
-      setError("User not logged in or missing userSID.");
-      return;
-    }
+    // console.log(userSID)
+    // if (!userSID) {
+    //   setError("User not logged in or missing userSID.");
+    //   return;
+    // }
+
+
 
     const fetchData = async () => {
       setLoading(true);
       try {
-        const data = await getTrips({
+        const data = await tripService.getDriverTrips({
           searchText,
           sortColumn,
           sortOrder,
           page,
           pageSize: 10,
-          sid: userSID,
           statusFilter,
         });
 
@@ -57,7 +59,7 @@ export default function DriverTripListPage() {
     };
 
     fetchData();
-  }, [searchText, sortColumn, sortOrder, page, statusFilter, userSID]);
+  }, [searchText, sortColumn, sortOrder, page, statusFilter]);
 
   return (
     <div className="p-4 space-y-4 bg-white dark:bg-black min-h-screen text-gray-900 dark:text-gray-100">

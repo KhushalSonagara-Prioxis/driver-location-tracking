@@ -4,13 +4,7 @@ import { useDriverLocation } from "@/context/DriverLocationContext";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { TripStatus, TripUpdateStatus } from "@/types/enums";
-import {
-  getTripBySID,
-  getTripUpdates,
-  startTrip,
-  endTrip,
-  addTripStatus,
-} from "@/api/tripServices";
+import {useTripService} from "@/api/tripServices";
 import { TripUpdate, Trip } from "@/types/tripTypes";
 
 export default function DriverTripDetailPage() {
@@ -25,30 +19,32 @@ export default function DriverTripDetailPage() {
   const [pauseNote, setPauseNote] = useState("");
   const [showPauseInput, setShowPauseInput] = useState(false);
 
+  const tripService = useTripService();
+
   if (!tripSID) return <p className="text-red-500">Error: Trip ID not found</p>;
-const fetchTripData = async () => {
-  try {
-    setLoading(true);
+  const fetchTripData = async () => {
+    try {
+      setLoading(true);
 
-    const tripData = await getTripBySID(tripSID);
-    console.log("Trip fetched page:", tripData);
+      const tripData = await tripService.getDriverTripBySID(tripSID);
+      console.log("Trip fetched page:", tripData);
 
-    setTrip(tripData);
-    if (
-      tripData?.tripStatus === TripStatus.InProgress ||
-      tripData?.tripStatus === TripStatus.Completed
-    ) {
-      const tripUpdates = await getTripUpdates(tripSID);
-      setUpdates(tripUpdates);
-    } else {
-      setUpdates([]);
+      setTrip(tripData);
+      if (
+        tripData?.tripStatus === TripStatus.InProgress ||
+        tripData?.tripStatus === TripStatus.Completed
+      ) {
+        const tripUpdates = await tripService.getTripUpdates(tripSID);
+        setUpdates(tripUpdates);
+      } else {
+        setUpdates([]);
+      }
+    } catch (err) {
+      console.error("fetchTripData error:", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("fetchTripData error:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
   useEffect(() => {
@@ -60,13 +56,13 @@ const fetchTripData = async () => {
       if (!tripSID) return;
 
       if (action === TripUpdateStatus.Start) {
-        await startTrip(tripSID);
+        await tripService.startTrip(tripSID);
         setCurrentTripId(tripSID);
       } else if (action === TripUpdateStatus.End) {
-        await endTrip(tripSID);
+        await tripService.endTrip(tripSID);
         setCurrentTripId(null);
       } else {
-        await addTripStatus(
+        await tripService.addTripStatus(
           tripSID,
           action,
           location?.lat || 0,

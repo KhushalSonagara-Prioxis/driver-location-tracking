@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getTrips } from "@/api/tripServices";
+import { useTripService } from "@/api/tripServices";
 import { Trip } from "@/types/tripTypes";
 import Link from "next/link";
 import { TripStatus } from "@/types/enums";
@@ -22,10 +22,12 @@ export default function AdminTripListPage() {
 
   const [showAddForm, setShowAddForm] = useState(false);
 
+  const tripService = useTripService();
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      const data = await getTrips({
+      const data = await tripService.getTrips({
         searchText,
         sortColumn,
         sortOrder,

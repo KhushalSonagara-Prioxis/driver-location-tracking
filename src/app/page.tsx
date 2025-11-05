@@ -1,25 +1,33 @@
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getAuthUser } from "@/auth/auth";
-import { Role, Status } from "@/types/enums";
+import { Role } from "@/types/enums";
 
-export default async function HomePage() {
-  const user = await getAuthUser();
+export default function HomePage() {
+  const router = useRouter();
 
-  if (!user) {
-    redirect("/auth/login");
-  }
+  useEffect(() => {
+    const user = getAuthUser();
 
-  if (user.status !== Status.Active) {
-    redirect("/auth/login");
-  }
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
 
-  if (user.role === Role.Admin) {
-    redirect("/admin/dashboard");
-  }
+    if (user.role === Role.Admin) {
+      router.push("/admin/trips");
+      return;
+    }
 
-  if (user.role === Role.Driver) {
-    redirect("/driver/trips");
-  }
+    if (user.role === Role.Driver) {
+      router.push("/driver/trips");
+      return;
+    }
 
-  redirect("/auth/login");
+    router.push("/auth/login");
+  }, [router]);
+
+  return <div>Redirecting...</div>;
 }
