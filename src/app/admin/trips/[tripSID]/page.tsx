@@ -6,6 +6,8 @@ import GoogleMap from "@/cmp/GoogleMap";
 import {useTripService} from "@/api/tripServices";
 import { Trip, TripUpdate } from "@/types/tripTypes";
 import { TripStatus, TripUpdateStatus } from "@/types/enums";
+import Script from "next/script";
+
 
 export default function AdminTripDetailPage() {
   const params = useParams();
@@ -143,11 +145,11 @@ export default function AdminTripDetailPage() {
         </ul>
       </div>
 
-      <script
-        async
-        defer
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`}
-      />
+      <Script
+  src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`}
+  strategy="afterInteractive"
+/>
+
     </div>
   );
 }

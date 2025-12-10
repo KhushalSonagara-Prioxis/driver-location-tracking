@@ -7,8 +7,8 @@ const GoogleMap = forwardRef(({ lat, lng, zoom = 14 }: { lat: number; lng: numbe
   const markerRef = useRef<google.maps.Marker | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
 
-  useEffect(() => {
-    if (!window.google || !window.google.maps || !mapRef.current) return;
+  const initMap = () => {
+    if (!mapRef.current) return;
 
     mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
       center: { lat, lng },
@@ -19,12 +19,26 @@ const GoogleMap = forwardRef(({ lat, lng, zoom = 14 }: { lat: number; lng: numbe
     markerRef.current = new window.google.maps.Marker({
       position: { lat, lng },
       map: mapInstanceRef.current,
-      title: "Truck Location",
       icon: {
         url: "/truck-icon.png",
         scaledSize: new window.google.maps.Size(50, 50),
       },
     });
+  };
+
+
+  useEffect(() => {
+    if (!window.google || !window.google.maps) {
+      // Re-run when Google Maps becomes available
+      const interval = setInterval(() => {
+        if (window.google && window.google.maps) {
+          initMap();
+          clearInterval(interval);
+        }
+      }, 300);
+
+      return;
+    }
   }, []);
 
   useImperativeHandle(ref, () => ({

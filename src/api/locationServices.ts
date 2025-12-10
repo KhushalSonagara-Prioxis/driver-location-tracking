@@ -3,8 +3,7 @@
 import { LocationDropdown } from "@/types/locationTypes";
 import { useFetchWithAuth } from "@/auth/fetchWithAuth";
 
-const BaseUrl: string =
-  process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:5125/api/";
+const BaseUrl: string = process.env.NEXT_PUBLIC_BASE_URL! ;
 
 export function useLocationService() {
   const fetchWithAuth = useFetchWithAuth();

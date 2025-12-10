@@ -5,7 +5,7 @@ import { Location } from "@/types/locationTypes";
 import { TripStatus, TripUpdateStatus } from "@/types/enums";
 import { useFetchWithAuth } from "../auth/fetchWithAuth";
 
-const BaseUrl: string = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:5125/api/";
+const BaseUrl: string = process.env.NEXT_PUBLIC_BASE_URL!;
 const TripUrl = `${BaseUrl.replace(/\/$/, "")}/Trip`;
 
 export function useTripService() {

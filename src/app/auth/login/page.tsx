@@ -3,28 +3,19 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Role } from "@/types/enums";
+import { useAuthServices} from "@/api/authServices"
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const authServices=useAuthServices();
 
   const handleLogin = async () => {
     try {
       setError("");
-      const response = await fetch("http://localhost:5125/Login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Invalid email or password");
-      }
-
-      console.log("response",response)
-      const data = await response.json();
+      const data = await authServices.userLogin(email,password);
 
       console.log("data",data)
 
