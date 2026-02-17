@@ -1,6 +1,6 @@
 const BaseUrl: string = process.env.NEXT_PUBLIC_BASE_URL! ;
 
-export function useAuthServices() {
+export function useAuthServices() { 
     const userLogin = async (email: string, password: string): Promise<any> => {
         const res = await fetch(`${BaseUrl}User/Login`, {
         method: "POST",
