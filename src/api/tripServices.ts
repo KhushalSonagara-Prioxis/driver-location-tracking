@@ -4,208 +4,158 @@ import { Trip, TripUpdate, AddTripRequest } from "@/types/tripTypes";
 import { Location } from "@/types/locationTypes";
 import { TripStatus, TripUpdateStatus } from "@/types/enums";
 import { useFetchWithAuth } from "../auth/fetchWithAuth";
+import { createApiCall } from "@/common/createApiCall";
 
 const BaseUrl: string = process.env.NEXT_PUBLIC_BASE_URL!;
 const TripUrl = `${BaseUrl.replace(/\/$/, "")}/Trip`;
 
 export function useTripService() {
   const fetchWithAuth = useFetchWithAuth();
+  const apiCall = createApiCall(fetchWithAuth);
 
   // 🚗 1. Get Driver Current Location
   const getTripCurrentLocation = async (tripSID: string): Promise<Trip> => {
-    const res = await fetchWithAuth(`${BaseUrl}Driver/GetCurrentLocation/${tripSID}`);
-    if (!res.ok) throw new Error(`Trip not found: ${res.status}`);
-    return res.json();
+    return apiCall({
+      endpoint: `Driver/GetCurrentLocation/${tripSID}`,
+    });
   };
 
   // 📍 2. Update Driver’s Current Location
   const updateDriverCurrentLocation = async (currentTripId: string, loc: Location) => {
-    const res = await fetchWithAuth(
-      `${BaseUrl}Driver/UpdateDriverCurrentLocation/${currentTripId}`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          latitude: loc.lat,
-          longitude: loc.lng,
-        }),
-      }
-    );
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("Failed to update location:", res.status, text);
-    }
+    return apiCall({
+      endpoint: `Driver/UpdateDriverCurrentLocation/${currentTripId}`,
+      method: "POST",
+      data: {
+        latitude: loc.lat,
+        longitude: loc.lng,
+      },
+    });
   };
 
   // 🧾 3. Get Trips (with filters, pagination, etc.)
-  const getDriverTrips = async ({
-    searchText = "",
-    page = 1,
-    pageSize = 10,
-    sortColumn = "lastModifiedDate",
-    sortOrder = "DESC",
-    sid = "",
-    statusFilter = "",
-  }: {
-    searchText?: string;
-    page?: number;
-    pageSize?: number;
-    sortColumn?: string;
-    sortOrder?: "ASC" | "DESC";
-    sid?: string;
-    statusFilter?: TripStatus | "";
-  }): Promise<{ result: Trip[]; meta: any }> => {
-    const url = new URL(`${BaseUrl.replace(/\/$/, "")}/Driver/GetAllTripsOfDriver`);
-
-    url.searchParams.append("SearchText", searchText);
-    url.searchParams.append("Page", page.toString());
-    url.searchParams.append("PageSize", pageSize.toString());
-    url.searchParams.append("SortColumn", sortColumn);
-    url.searchParams.append("SortOrder", sortOrder);
-
+  const getDriverTrips = (payload: any) => {
     const filters: any[] = [];
-    if (statusFilter) filters.push({ key: "tripStatus", value: statusFilter, condition: "=" });
-    if (sid) filters.push({ key: "UserSID", value: sid, condition: "=" });
 
-    if (filters.length > 0) {
-      url.searchParams.append("Filters", JSON.stringify(filters));
-    }
+    if (payload.statusFilter)
+      filters.push({ key: "tripStatus", value: payload.statusFilter, condition: "=" });
 
-    const res = await fetchWithAuth(url.toString());
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Failed to fetch trips: ${res.status} ${text}`);
-    }
+    if (payload.sid)
+      filters.push({ key: "UserSID", value: payload.sid, condition: "=" });
 
-    return await res.json();
+    return apiCall<{ result: Trip[]; meta: any }>({
+      endpoint: `Driver/GetAllTripsOfDriver`,
+      params: {
+        SearchText: payload.searchText ?? "",
+        Page: payload.page ?? 1,
+        PageSize: payload.pageSize ?? 10,
+        SortColumn: payload.sortColumn ?? "lastModifiedDate",
+        SortOrder: payload.sortOrder ?? "DESC",
+        ...(filters.length && { Filters: JSON.stringify(filters) }),
+      },
+    });
   };
 
-  const getTrips = async ({
-    searchText = "",
-    page = 1,
-    pageSize = 10,
-    sortColumn = "lastModifiedDate",
-    sortOrder = "DESC",
-    sid = "",
-    statusFilter = "",
-  }: {
-    searchText?: string;
-    page?: number;
-    pageSize?: number;
-    sortColumn?: string;
-    sortOrder?: "ASC" | "DESC";
-    sid?: string;
-    statusFilter?: TripStatus | "";
-  }): Promise<{ result: Trip[]; meta: any }> => {
-    const url = new URL(`${BaseUrl.replace(/\/$/, "")}/Trip`);
 
-    url.searchParams.append("SearchText", searchText);
-    url.searchParams.append("Page", page.toString());
-    url.searchParams.append("PageSize", pageSize.toString());
-    url.searchParams.append("SortColumn", sortColumn);
-    url.searchParams.append("SortOrder", sortOrder);
-
+  const getTrips = (payload: any) => {
     const filters: any[] = [];
-    if (statusFilter) filters.push({ key: "tripStatus", value: statusFilter, condition: "=" });
-    if (sid) filters.push({ key: "UserSID", value: sid, condition: "=" });
 
-    if (filters.length > 0) {
-      url.searchParams.append("Filters", JSON.stringify(filters));
-    }
+    if (payload.statusFilter)
+      filters.push({ key: "tripStatus", value: payload.statusFilter, condition: "=" });
 
-    const res = await fetchWithAuth(url.toString());
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Failed to fetch trips: ${res.status} ${text}`);
-    }
+    if (payload.sid)
+      filters.push({ key: "UserSID", value: payload.sid, condition: "=" });
 
-    return await res.json();
+    return apiCall<{ result: Trip[]; meta: any }>({
+      endpoint: `Trip`,
+      params: {
+        SearchText: payload.searchText ?? "",
+        Page: payload.page ?? 1,
+        PageSize: payload.pageSize ?? 10,
+        SortColumn: payload.sortColumn ?? "lastModifiedDate",
+        SortOrder: payload.sortOrder ?? "DESC",
+        ...(filters.length && { Filters: JSON.stringify(filters) }),
+      },
+    });
   };
+
 
   // 🔍 4. Get Trip by SID
   const getTripBySID = async (tripSID: string): Promise<Trip | null> => {
-    const url = `${TripUrl}?Filters=${encodeURIComponent(
-      JSON.stringify([{ key: "TripSID", value: tripSID, condition: "=" }])
-    )}`;
+    const data = await apiCall<{ result: Trip[] }>({
+      endpoint: `Trip`,
+      params: {
+        Filters: JSON.stringify([{ key: "TripSID", value: tripSID, condition: "=" }]),
+      },
+    });
 
-    const res = await fetchWithAuth(url);
-    if (!res.ok) throw new Error(`Failed to fetch trip: ${res.status}`);
-
-    const data = await res.json();
     return data?.result?.[0] ?? null;
   };
+
 
   // 🔍 4. Get Trip by SID
   const getDriverTripBySID = async (tripSID: string): Promise<Trip | null> => {
-    const url = `${BaseUrl}Driver/GetAllTripsOfDriver?Filters=${encodeURIComponent(
-      JSON.stringify([{ key: "TripSID", value: tripSID, condition: "=" }])
-    )}`;
+    const data = await apiCall<{ result: Trip[] }>({
+      endpoint: `Driver/GetAllTripsOfDriver`,
+      params: {
+        Filters: JSON.stringify([{ key: "TripSID", value: tripSID, condition: "=" }]),
+      },
+    });
 
-    const res = await fetchWithAuth(url);
-    if (!res.ok) throw new Error(`Failed to fetch trip: ${res.status}`);
-
-    const data = await res.json();
     return data?.result?.[0] ?? null;
   };
 
 
+
   // 🔁 5. Get Trip Updates
-  const getTripUpdates = async (tripSID: string): Promise<TripUpdate[]> => {
-    const url = `${TripUrl}/GetTripUpdateStatus/${tripSID}`;
-    const res = await fetchWithAuth(url);
-    if (!res.ok) throw new Error(`Failed to fetch trip updates: ${res.status}`);
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  };
+  const getTripUpdates = (tripSID: string) =>
+    apiCall<TripUpdate[]>({
+      endpoint: `Trip/GetTripUpdateStatus/${tripSID}`,
+    });
 
   // ▶️ 6. Start Trip
-  const startTrip = async (tripSID: string) => {
-    const res = await fetchWithAuth(`${TripUrl}/TripStart/${tripSID}`, { method: "POST" });
-    if (!res.ok) throw new Error(`Failed to start trip: ${res.status}`);
-    return res.json();
-  };
+  const startTrip = (tripSID: string) =>
+    apiCall({
+      endpoint: `Trip/TripStart/${tripSID}`,
+      method: "POST",
+    });
+
 
   // ⏹️ 7. End Trip
-  const endTrip = async (tripSID: string) => {
-    const res = await fetchWithAuth(`${TripUrl}/TripEnd/${tripSID}`, { method: "POST" });
-    if (!res.ok) throw new Error(`Failed to end trip: ${res.status}`);
-    return res.json();
-  };
+  const endTrip = (tripSID: string) =>
+    apiCall({
+      endpoint: `Trip/TripEnd/${tripSID}`,
+      method: "POST",
+    });
+
 
   // 📝 8. Add Trip Status
-  const addTripStatus = async (
+  const addTripStatus = (
     tripSID: string,
     status: TripUpdateStatus,
     latitude: number,
     longitude: number,
     note: string
-  ) => {
-    const res = await fetchWithAuth(`${TripUrl}/AddTripStatus/${tripSID}`, {
+  ) =>
+    apiCall({
+      endpoint: `Trip/AddTripStatus/${tripSID}`,
       method: "POST",
-      body: JSON.stringify({
+      data: {
         tripUpdateStatus: status,
         tripUpdatedLatitude: latitude,
         tripUpdatedLongitude: longitude,
         note,
-      }),
+      },
     });
 
-    if (!res.ok) throw new Error(`Failed to update trip status: ${res.status}`);
-    return res.json();
-  };
 
   // ➕ 9. Add New Trip
-  const addTrip = async (trip: AddTripRequest): Promise<any> => {
-    const res = await fetchWithAuth(`${TripUrl}/AddTrip`, {
+  const addTrip = (trip: AddTripRequest) =>
+    apiCall({
+      endpoint: `Trip/AddTrip`,
       method: "POST",
-      body: JSON.stringify(trip),
+      data: trip,
     });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Failed to add trip: ${res.status} ${text}`);
-    }
-    return res.json();
-  };
+
 
   return {
     getTripCurrentLocation,
