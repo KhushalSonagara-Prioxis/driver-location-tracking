@@ -6,6 +6,7 @@ import { Trip,TripTileCount } from "@/types/tripTypes";
 import Link from "next/link";
 import { TripStatus } from "@/types/enums";
 import AddTripForm from "@/cmp/form/AddTripForm";
+import ConfirmationModal from "@/cmp/ConfirmationModal";
 
 export default function AdminTripListPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -22,6 +23,15 @@ export default function AdminTripListPage() {
   const [tileStats, setTileStats] = useState<TripTileCount | null>(null);
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    isLoading?: boolean;
+    isDanger?: boolean;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   const tripService = useTripService();
 
@@ -62,6 +72,41 @@ export default function AdminTripListPage() {
     fetchData();
     fetchTileStats();
   }, [searchText, sortColumn, sortOrder, page, statusFilter]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenActionId(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  const toggleAction = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.nativeEvent.stopImmediatePropagation();
+    setOpenActionId(prev => prev === id ? null : id);
+  };
+
+  const handleDelete = async (id: string) => {
+    setOpenActionId(null);
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Trip",
+      message: "Are you sure you want to delete this trip? This action cannot be undone.",
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await tripService.deleteTrip(id);
+          fetchData();
+          fetchTileStats();
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          console.error("Failed to delete trip", error);
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
 
   const getStatusColor = (statusName: string | undefined) => {
     const status = statusName?.toLowerCase() || "";
@@ -222,7 +267,7 @@ export default function AdminTripListPage() {
         </div>
 
         {/* Table Card */}
-        <div className="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-visible">
           {loading && (
             <div className="p-8 text-center text-gray-500 dark:text-gray-400">
               <div className="animate-spin inline-block w-6 h-6 border-2 border-current border-t-transparent text-indigo-600 rounded-full mb-2"></div>
@@ -276,7 +321,7 @@ export default function AdminTripListPage() {
                         <div className="h-8 w-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-bold text-sm mr-3 flex-shrink-0">
                           {trip.driverName?.charAt(0) || "U"}
                         </div>
-                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{trip.driverName || "Unknown Driver"}</span>
+                        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{trip.driverName || "Driver not allocated"}</span>
                       </div>
                       
                       <div className="flex flex-col space-y-1 min-w-0">
@@ -301,10 +346,34 @@ export default function AdminTripListPage() {
                         {trip.lastModifiedDate ? new Date(trip.lastModifiedDate).toLocaleString() : "-"}
                       </div>
 
-                      <div className="text-right text-sm font-medium">
-                        <Link href={`trips/${trip.tripSID}`} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
-                          View Details
-                        </Link>
+                      <div className="text-right text-sm font-medium whitespace-nowrap">
+                        <div className="relative inline-flex items-center justify-end gap-2">
+                          <Link href={`trips/${trip.tripSID}`} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
+                            View
+                          </Link>
+                          <span className="text-gray-300 dark:text-gray-600">|</span>
+                          <button
+                            type="button"
+                            onClick={(e) => toggleAction(e, trip.tripSID)}
+                            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
+                          >
+                            <svg className="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {openActionId === trip.tripSID && (
+                            <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-[100] py-1">
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(trip.tripSID)}
+                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -352,6 +421,15 @@ export default function AdminTripListPage() {
           />
         )}
       </div>
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        isLoading={confirmModal.isLoading}
+        isDanger={confirmModal.isDanger}
+      />
     </div>
   );
 }

@@ -55,16 +55,16 @@ export function useUserService() {
     });
   };
 
-  const ActiveInactiveDriver = async (): Promise<boolean> => {
+  const ActiveInactiveDriver = async (driverSid: string): Promise<boolean> => {
     return apiCall({
-      endpoint: `Driver/ActiveInactiveDriver`,
+      endpoint: `Driver/ActiveInactiveDriver/${driverSid}`,
       method: "POST"
     });
   };
 
-  const DeleteDriver = async (): Promise<boolean> => {
+  const DeleteDriver = async (driverSid: string): Promise<boolean> => {
     return apiCall({
-      endpoint: `Driver/DeleteDriver`,
+      endpoint: `Driver/DeleteDriver/${driverSid}`,
       method: "DELETE"
     });
   };

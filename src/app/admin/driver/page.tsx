@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useUserService } from "@/api/userServices";
 import { DriverDetail } from "@/types/userTypes";
+import ConfirmationModal from "@/cmp/ConfirmationModal";
 
 export default function DriverListPage() {
   const userService = useUserService();
@@ -15,6 +16,15 @@ export default function DriverListPage() {
   const [sortColumn, setSortColumn] = useState("UserName");
   const [sortOrder, setSortOrder] = useState("ASC");
   const [totalCount, setTotalCount] = useState(0);
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    isLoading?: boolean;
+    isDanger?: boolean;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   const fetchDrivers = async () => {
     try {
@@ -48,6 +58,20 @@ export default function DriverListPage() {
     fetchDrivers();
   }, [page, pageSize, sortColumn, sortOrder]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenActionId(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  const toggleAction = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.nativeEvent.stopImmediatePropagation();
+    // If clicking the same one, close it. If clicking a different one, open that one.
+    setOpenActionId(prev => prev === id ? null : id);
+  };
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
@@ -63,6 +87,49 @@ export default function DriverListPage() {
     }
   };
 
+  const handleStatusChange = async (id: string, currentStatus: string) => {
+    setOpenActionId(null);
+    const action = currentStatus === 'Active' ? 'deactivate' : 'activate';
+    setConfirmModal({
+      isOpen: true,
+      title: `${action === 'activate' ? 'Activate' : 'Deactivate'} Driver`,
+      message: `Are you sure you want to ${action} this driver?`,
+      isDanger: action === 'deactivate',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await userService.ActiveInactiveDriver(id);
+          fetchDrivers(); // Refresh list
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          console.error("Failed to update status", error);
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
+  const handleDelete = async (id: string) => {
+    setOpenActionId(null);
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete Driver",
+      message: "Are you sure you want to delete this driver? This action cannot be undone.",
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isLoading: true }));
+        try {
+          await userService.DeleteDriver(id);
+          fetchDrivers();
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          console.error("Failed to delete driver", error);
+          setConfirmModal((prev) => ({ ...prev, isLoading: false }));
+        }
+      },
+    });
+  };
+
   return (
     <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -72,7 +139,7 @@ export default function DriverListPage() {
             type="button"
             className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
           >
-            <span className="mr-2">+</span>
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
             Add Driver
           </button>
         </div>
@@ -95,7 +162,7 @@ export default function DriverListPage() {
           </form>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700">
               <tr>
@@ -126,8 +193,10 @@ export default function DriverListPage() {
                   <td colSpan={5} className="px-6 py-8 text-center text-gray-500">No drivers found.</td>
                 </tr>
               ) : (
-                drivers.map((driver) => (
-                  <tr key={driver.userSID} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                drivers.map((driver) => {
+                  const driverId = driver.userSID || driver.UserSID || "";
+                  return (
+                  <tr key={driverId} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{driver.userName}</td>
                     {/* <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{driver.userEmail}</td> */}
                     <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{driver.phoneNumber}</td>
@@ -140,16 +209,58 @@ export default function DriverListPage() {
                         {driver.statusName}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <Link
-                        href={`/admin/driver/${driver.userSID}`}
-                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
-                      >
-                        View
-                      </Link>
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <div className="relative inline-flex items-center justify-end gap-2">
+                        <Link
+                          href={`/admin/driver/${driverId}`}
+                          className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
+                        >
+                          View
+                        </Link>
+                        <span className="text-gray-300 dark:text-gray-600">|</span>
+                        <button
+                          type="button"
+                          onClick={(e) => toggleAction(e, driverId)}
+                          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none"
+                        >
+                          <svg className="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+
+                        {openActionId === driverId && (
+                          <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-[100] py-1">
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange(driverId, driver.statusName)}
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                            >
+                              {driver.statusName === 'Active' ? (
+                                <>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
+                                  Inactive
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                  Active
+                                </>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(driverId)}
+                              className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
-                ))
+                )})
               )}
             </tbody>
           </table>
@@ -176,6 +287,15 @@ export default function DriverListPage() {
           </button>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        isLoading={confirmModal.isLoading}
+        isDanger={confirmModal.isDanger}
+      />
     </div>
   );
 }

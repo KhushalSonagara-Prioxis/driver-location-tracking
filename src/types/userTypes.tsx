@@ -7,6 +7,7 @@ export interface DriverDropdown {
 
 export interface DriverDetail{
   userSID: string;
+  UserSID?: string;
   userName: string;
   phoneNumber: string;
   userEmail: string;

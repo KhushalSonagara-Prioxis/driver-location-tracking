@@ -168,6 +168,12 @@ export function useTripService() {
       data: trip,
     });
 
+  const deleteTrip = (tripSID: string) =>
+    apiCall({
+      endpoint: `Trip/DeleteTrip/${tripSID}`,
+      method: "DELETE",
+    });
+
 
   return {
     getTripCurrentLocation,
@@ -183,5 +189,6 @@ export function useTripService() {
     endTrip,
     addTripStatus,
     addTrip,
+    deleteTrip,
   };
 }
