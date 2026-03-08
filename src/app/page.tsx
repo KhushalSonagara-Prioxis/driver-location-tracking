@@ -17,7 +17,7 @@ export default function HomePage() {
     }
 
     if (user.role === Role.Admin) {
-      router.push("/admin/trips");
+      router.push("/admin/dashboard");
       return;
     }
 

@@ -1,0 +1,181 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useUserService } from "@/api/userServices";
+import { DriverDetail } from "@/types/userTypes";
+
+export default function DriverListPage() {
+  const userService = useUserService();
+  const [drivers, setDrivers] = useState<DriverDetail[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [sortColumn, setSortColumn] = useState("UserName");
+  const [sortOrder, setSortOrder] = useState("ASC");
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchDrivers = async () => {
+    try {
+      setLoading(true);
+      const data = await userService.getDriverList({
+        searchText,
+        page,
+        pageSize,
+        sortColumn,
+        sortOrder,
+      });
+      
+      // Handle different API response structures
+      if (data.result && Array.isArray(data.result)) {
+          setDrivers(data.result);
+          setTotalCount(data.meta?.totalCount || 0);
+      } else if (Array.isArray(data)) {
+          setDrivers(data);
+          setTotalCount(data.length);
+      } else {
+          setDrivers([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch drivers", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDrivers();
+  }, [page, pageSize, sortColumn, sortOrder]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPage(1);
+    fetchDrivers();
+  };
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortOrder(sortOrder === "ASC" ? "DESC" : "ASC");
+    } else {
+      setSortColumn(column);
+      setSortOrder("ASC");
+    }
+  };
+
+  return (
+    <div className="h-full overflow-y-auto bg-gray-50 dark:bg-gray-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Drivers</h1>
+          <button
+            type="button"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+          >
+            <span className="mr-2">+</span>
+            Add Driver
+          </button>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+          <form onSubmit={handleSearch} className="flex gap-4 max-w-md">
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              Search
+            </button>
+          </form>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700">
+              <tr>
+                <th
+                  className="px-6 py-3 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 select-none"
+                  onClick={() => handleSort("UserName")}
+                >
+                  Name {sortColumn === "UserName" && (sortOrder === "ASC" ? "↑" : "↓")}
+                </th>
+                {/* <th
+                  className="px-6 py-3 cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 select-none"
+                  onClick={() => handleSort("UserEmail")}
+                >
+                  Email {sortColumn === "UserEmail" && (sortOrder === "ASC" ? "↑" : "↓")}
+                </th> */}
+                <th className="px-6 py-3">Phone</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading drivers...</td>
+                </tr>
+              ) : drivers.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">No drivers found.</td>
+                </tr>
+              ) : (
+                drivers.map((driver) => (
+                  <tr key={driver.userSID} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{driver.userName}</td>
+                    {/* <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{driver.userEmail}</td> */}
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{driver.phoneNumber}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        driver.statusName === 'Active' 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {driver.statusName}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link
+                        href={`/admin/driver/${driver.userSID}`}
+                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex justify-between items-center mt-6">
+          <button
+              disabled={page === 1 || loading}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors"
+          >
+              Previous
+          </button>
+          <span className="text-sm text-gray-600 dark:text-gray-400">
+              Page {page}
+          </span>
+          <button
+              disabled={drivers.length < pageSize || loading}
+              onClick={() => setPage(p => p + 1)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors"
+          >
+              Next
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

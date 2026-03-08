@@ -2,13 +2,19 @@
 
 import { useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 
-const GoogleMap = forwardRef(({ lat, lng, zoom = 14 }: { lat: number; lng: number; zoom?: number }, ref) => {
+interface GoogleMapProps {
+  lat: number;
+  lng: number;
+  zoom?: number;
+}
+
+const GoogleMap = forwardRef(({ lat, lng, zoom = 14 }: GoogleMapProps, ref) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
 
   const initMap = () => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !window.google) return;
 
     mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
       center: { lat, lng },
@@ -26,19 +32,19 @@ const GoogleMap = forwardRef(({ lat, lng, zoom = 14 }: { lat: number; lng: numbe
     });
   };
 
-
   useEffect(() => {
     if (!window.google || !window.google.maps) {
-      // Re-run when Google Maps becomes available
       const interval = setInterval(() => {
         if (window.google && window.google.maps) {
           initMap();
           clearInterval(interval);
         }
       }, 300);
-
-      return;
+      return () => clearInterval(interval);
     }
+    
+    // Initialize map if script is already loaded
+    initMap();
   }, []);
 
   useImperativeHandle(ref, () => ({

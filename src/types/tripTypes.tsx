@@ -38,3 +38,11 @@ export interface AddTripRequest {
   driverSID: string;
   // userSID: string;
 }
+
+
+export interface TripTileCount {
+  totalNumberOfTrips: number;
+  inProgressTrips: number;
+  completedTrips: number;
+  pendingTrips: number;
+}

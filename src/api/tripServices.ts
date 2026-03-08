@@ -1,6 +1,6 @@
 "use client";
 
-import { Trip, TripUpdate, AddTripRequest } from "@/types/tripTypes";
+import { Trip, TripUpdate, AddTripRequest, TripTileCount } from "@/types/tripTypes";
 import { Location } from "@/types/locationTypes";
 import { TripStatus, TripUpdateStatus } from "@/types/enums";
 import { useFetchWithAuth } from "../auth/fetchWithAuth";
@@ -77,6 +77,18 @@ export function useTripService() {
       },
     });
   };
+
+  const getTripTileCount = () => {
+    return apiCall({
+      endpoint: `Trip/TripTileCount`,
+    })
+  }
+
+  const getDriverTripTileCount = () => {
+    return apiCall({
+      endpoint: `Trip/DriverTripTileCount`,
+    })
+  }
 
 
   // 🔍 4. Get Trip by SID
@@ -161,6 +173,8 @@ export function useTripService() {
     getTripCurrentLocation,
     updateDriverCurrentLocation,
     getTrips,
+    getTripTileCount,
+    getDriverTripTileCount,
     getDriverTrips,
     getTripBySID,
     getDriverTripBySID,

@@ -5,7 +5,16 @@ export interface DriverDropdown {
   userName: string;
 }
 
-
+export interface DriverDetail{
+  userSID: string;
+  userName: string;
+  phoneNumber: string;
+  userEmail: string;
+  status: number;
+  statusName: string;
+  createdDate?: string;
+  lastModifiedDate?: string;
+}
 export interface AuthUser {
   token: string;
   role: Role;
