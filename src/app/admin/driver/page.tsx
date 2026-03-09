@@ -17,6 +17,7 @@ export default function DriverListPage() {
   const [sortOrder, setSortOrder] = useState("ASC");
   const [totalCount, setTotalCount] = useState(0);
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const [debouncedSearchText, setDebouncedSearchText] = useState("");
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -55,8 +56,16 @@ export default function DriverListPage() {
   };
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      setDebouncedSearchText(searchText);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
     fetchDrivers();
-  }, [page, pageSize, sortColumn, sortOrder]);
+  }, [page, pageSize, sortColumn, sortOrder, debouncedSearchText]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -70,12 +79,6 @@ export default function DriverListPage() {
     e.nativeEvent.stopImmediatePropagation();
     // If clicking the same one, close it. If clicking a different one, open that one.
     setOpenActionId(prev => prev === id ? null : id);
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(1);
-    fetchDrivers();
   };
 
   const handleSort = (column: string) => {
@@ -145,21 +148,13 @@ export default function DriverListPage() {
         </div>
 
         <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-          <form onSubmit={handleSearch} className="flex gap-4 max-w-md">
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
-            >
-              Search
-            </button>
-          </form>
+          <input
+            type="text"
+            placeholder="Search by name..."
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+          />
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-visible">

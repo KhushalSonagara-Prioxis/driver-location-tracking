@@ -17,6 +17,7 @@ export default function AdminTripListPage() {
   const [sortColumn, setSortColumn] = useState("lastModifiedDate");
   const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("DESC");
   const [statusFilter, setStatusFilter] = useState<TripStatus | "" | string>("");
+  const [debouncedSearchText, setDebouncedSearchText] = useState("");
 
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -69,9 +70,17 @@ export default function AdminTripListPage() {
   };
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      setDebouncedSearchText(searchText);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [searchText]);
+
+  useEffect(() => {
     fetchData();
     fetchTileStats();
-  }, [searchText, sortColumn, sortOrder, page, statusFilter]);
+  }, [debouncedSearchText, sortColumn, sortOrder, page, statusFilter]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -244,7 +253,6 @@ export default function AdminTripListPage() {
                 value={searchText}
                 onChange={(e) => {
                   setSearchText(e.target.value);
-                  setPage(1);
                 }}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
               />
