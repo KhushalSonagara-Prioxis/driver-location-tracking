@@ -23,7 +23,6 @@ export default function AddTripForm({ onSuccess, onClose }: AddTripFormProps) {
     startLocationSID: "",
     toLocationSID: "",
     driverSID: "",
-    // userSID: "",
   });
 
   const [drivers, setDrivers] = useState<DriverDropdown[]>([]);
@@ -41,6 +40,7 @@ export default function AddTripForm({ onSuccess, onClose }: AddTripFormProps) {
           userService.getDriversDropDown(),
           locationService.getLocations(),
         ]);
+
         setDrivers(driverData);
         setLocations(locationData);
       } catch (err) {
@@ -60,6 +60,38 @@ export default function AddTripForm({ onSuccess, onClose }: AddTripFormProps) {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+
+    // Auto fill start location coordinates
+    if (name === "startLocationSID") {
+      const selectedLocation = locations.find(
+        (loc) => loc.locationSID === value
+      );
+
+      setFormData((prev) => ({
+        ...prev,
+        startLocationSID: value,
+        startLatitude: selectedLocation?.latitude ?? 0,
+        startLongitude: selectedLocation?.longitude ?? 0,
+      }));
+      return;
+    }
+
+    // Auto fill destination coordinates
+    if (name === "toLocationSID") {
+      const selectedLocation = locations.find(
+        (loc) => loc.locationSID === value
+      );
+
+      setFormData((prev) => ({
+        ...prev,
+        toLocationSID: value,
+        toLatitude: selectedLocation?.latitude ?? 0,
+        toLongitude: selectedLocation?.longitude ?? 0,
+      }));
+      return;
+    }
+
+    // Normal input handling
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -161,32 +193,6 @@ export default function AddTripForm({ onSuccess, onClose }: AddTripFormProps) {
                       ))}
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Latitude</label>
-                    <input
-                      type="number"
-                      name="startLatitude"
-                      value={formData.startLatitude}
-                      onChange={handleChange}
-                      required
-                      step="any"
-                      className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Longitude</label>
-                    <input
-                      type="number"
-                      name="startLongitude"
-                      value={formData.startLongitude}
-                      onChange={handleChange}
-                      required
-                      step="any"
-                      className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Destination Location */}
@@ -213,32 +219,6 @@ export default function AddTripForm({ onSuccess, onClose }: AddTripFormProps) {
                         </option>
                       ))}
                   </select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Latitude</label>
-                    <input
-                      type="number"
-                      name="toLatitude"
-                      value={formData.toLatitude}
-                      onChange={handleChange}
-                      required
-                      step="any"
-                      className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Longitude</label>
-                    <input
-                      type="number"
-                      name="toLongitude"
-                      value={formData.toLongitude}
-                      onChange={handleChange}
-                      required
-                      step="any"
-                      className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:text-white"
-                    />
-                  </div>
                 </div>
               </div>
             </div>
