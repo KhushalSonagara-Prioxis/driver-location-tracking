@@ -3,6 +3,7 @@ import "./globals.css";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useCallback } from "react";
+import Script from "next/script";
 
 export default function RootLayout({
   children,
@@ -35,11 +36,15 @@ export default function RootLayout({
       ]
     : [];
 
-  const title = isAdmin ? "FleetTrack Admin" : isDriver ? "FleetTrack Driver" : "FleetTrack";
+  const title = isAdmin ? "RouteRadar Admin" : isDriver ? "RouteRadar Driver" : "RouteRadar";
 
   return (
     <html lang="en">
       <body className="flex flex-col h-screen overflow-hidden">
+        <Script 
+          src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places`} 
+          strategy="afterInteractive" 
+        />
         {/* Top Navigation */}
         {!isAuth && (
           <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm z-10">

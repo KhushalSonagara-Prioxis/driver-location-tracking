@@ -7,7 +7,6 @@ import { TripStatus, TripUpdateStatus } from "@/types/enums";
 import {useTripService} from "@/api/tripServices";
 import { TripUpdate, Trip } from "@/types/tripTypes";
 import GoogleMap from "@/cmp/GoogleMap";
-import Script from "next/script";
 
 export default function DriverTripDetailPage() {
   const params = useParams();
@@ -348,10 +347,6 @@ export default function DriverTripDetailPage() {
           </div>
         </div>
       </div>
-      <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`}
-        strategy="afterInteractive"
-      />
     </div>
   );
 }
