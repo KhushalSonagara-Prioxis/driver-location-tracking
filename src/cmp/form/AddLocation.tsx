@@ -1,26 +1,38 @@
 import { useState } from "react";
 import MapLocationPicker, { LocationData } from "@/cmp/MapLocationPicker";
+import { useLocationService } from "@/api/locationServices";
 
 interface AddLocationProps {
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-export default function AddLocation({ onClose }: AddLocationProps) {
+export default function AddLocation({ onClose, onSuccess }: AddLocationProps) {
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const locationService = useLocationService();
 
   const handleLocationSelect = (location: LocationData) => {
     setSelectedLocation(location);
-    console.log("Selected Name:", location.name);
-    console.log("Selected Lat:", location.lat);
-    console.log("Selected Lng:", location.lng);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedLocation) {
-      console.log("Submitting location:", selectedLocation);
-      // Perform API call here to save the location
-      onClose();
+      try {
+        setIsSaving(true);
+        await locationService.addLocations({
+          locationName: selectedLocation.name,
+          latitude: selectedLocation.lat,
+          longitude: selectedLocation.lng,
+        });
+        if (onSuccess) onSuccess();
+        else onClose();
+      } catch (error) {
+        console.error("Failed to add location:", error);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -72,10 +84,10 @@ export default function AddLocation({ onClose }: AddLocationProps) {
               </button>
               <button
                 type="submit"
-                disabled={!selectedLocation}
+                disabled={!selectedLocation || isSaving}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                Save Location
+                {isSaving ? "Saving..." : "Save Location"}
               </button>
             </div>
           </form>

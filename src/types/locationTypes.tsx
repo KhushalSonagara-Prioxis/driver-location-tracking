@@ -18,3 +18,18 @@ export interface LocationDropdown {
   locationSID: string;
   locationName: string;
 }
+
+export interface addLocation{
+  locationName: string;
+  latitude: number;
+  longitude: number;
+}
+
+export interface LocationDetail {
+  locationSID: string;
+  locationName: string;
+  latitude: number;
+  longitude: number;
+  status?: number;
+  statusName?: string;
+}

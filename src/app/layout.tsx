@@ -27,7 +27,8 @@ export default function RootLayout({
     ? [
         { name: "Dashboard", href: "/admin/dashboard", icon: "📊" },
         { name: "Trips", href: "/admin/trips", icon: "🚛" },
-        { name: "Drivers", href: "/admin/driver", icon: "🚗" }
+        { name: "Drivers", href: "/admin/driver", icon: "🚗" },
+        { name: "Locations", href: "/admin/location", icon: "📍" }
       ]
     : isDriver
     ? [
